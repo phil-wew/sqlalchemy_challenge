@@ -50,11 +50,27 @@ app = Flask(__name__)
 def welcome():
     """List all available api routes."""
     return(
-        f"Available Routes:<br/>"
+           f"Available Routes:<br/>"
+
+        f"<br/>"
         f"/api/v1.0/precipitation<br/>"
+        f"- List of prior year rain totals from all stations<br/>"
+        f"<br/>"
+
         f"/api/v1.0/stations<br/>"
+        f"- List of Station numbers and names<br/>"
+        f"<br/>"
+
         f"/api/v1.0/tobs<br/>"
-        f'/api/v1.0/<start>` and `/api/v1.0/<start>/<end>'
+        f"- List of prior year temperatures from all stations<br/>"
+        f"<br/>"
+
+        f"/api/v1.0/start<br/>"
+        f"- When given the start date (YYYY-MM-DD), calculates the MIN/AVG/MAX temperature for all dates >= to the start date <br/>"
+        f"<br/>"
+
+        f"/api/v1.0/start/end<br/>"
+        f"- When given the start and the end date (YYYY-MM-DD), calculate the MIN/AVG/MAX temperature for dates between <br/>"
     )
 
 
@@ -108,6 +124,40 @@ def active_station():
 
     return jsonify(tobs)
 
+
+
+@app.route(f'/api/v1.0/<start>')
+@app.route(f'/api/v1.0/<start>/<end>')
+def stats (start=None, end=None):
+    session= Session(engine)
+
+    """ Return TMIN,TAVG,TMAX"""
+
+    sel = [func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)]
+
+
+    if not end:
+        observations = session.query(*sel).\
+            filter(Measurement.date >= start).all()
+        temperatures = list(np.ravel(observations))
+        return jsonify(temperatures)
+
+    
+    end_obs = session.query(*sel).\
+        filter(Measurement.date >= start).\
+            filter(Measurement.date <= end).all()
+    temperatures = list(np.ravel(end_obs))
+    return jsonify(temperatures)
+
+
+# * Return a JSON list of the minimum temperature, the average temperature, 
+# and the max temperature for a given start or start-end range.
+
+# * When given the start only, calculate `TMIN`, `TAVG`, and `TMAX` 
+# for all dates greater than and equal to the start date.
+
+# * When given the start and the end date, calculate the `TMIN`, `TAVG`, and `TMAX` 
+# for dates between the start and end date inclusive.
 
 
 
